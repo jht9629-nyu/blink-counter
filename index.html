@@ -105,8 +105,8 @@
 
     function drawCounter(lm) {
       const minY = Math.min(...lm.map(p => p.y));
-      // Nose tip x (landmark 1); mirror to match CSS scaleX(-1) on canvas
-      const cx = (1 - lm[1].x) * canvas.width;
+      // Nose tip x raw; after counter-flip transform, tx = canvas.width - cx lands at correct screen x
+      const cx = lm[1].x * canvas.width;
       const cy = (minY * canvas.height) - 18;
 
       const text = `Blinks: ${blinkCount}`;
