@@ -79,8 +79,8 @@
     const status   = document.getElementById('status');
     const resetBtn = document.getElementById('reset-btn');
 
-    const BLINK_THRESHOLD = 0.4;  // blendshape score 0–1; tune up/down if needed
-    const CONSEC_FRAMES   = 2;
+    const BLINK_THRESHOLD = 0.08;
+    const CONSEC_FRAMES   = 1;
 
     let blinkCount      = 0;
     let leftClosed      = 0;
@@ -183,8 +183,17 @@
 
             // Blink detection via blendshapes
             const shapes = result.faceBlendshapes?.[0]?.categories ?? [];
+
+            // One-time dump of all category names so we can verify the right key
+            if (shapes.length && !window._shapesDumped) {
+              window._shapesDumped = true;
+              console.log('Blendshape categories:', shapes.map(c => c.categoryName));
+            }
+
             const leftScore  = shapes.find(c => c.categoryName === 'eyeBlinkLeft')?.score  ?? 0;
             const rightScore = shapes.find(c => c.categoryName === 'eyeBlinkRight')?.score ?? 0;
+
+            status.textContent = `shapes:${shapes.length} L:${leftScore.toFixed(2)} R:${rightScore.toFixed(2)} | blinks:${blinkCount}`;
 
             if (leftScore  > BLINK_THRESHOLD) leftClosed++;  else leftClosed  = 0;
             if (rightScore > BLINK_THRESHOLD) rightClosed++; else rightClosed = 0;
