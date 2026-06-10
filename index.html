@@ -79,29 +79,13 @@
     const status   = document.getElementById('status');
     const resetBtn = document.getElementById('reset-btn');
 
-    // EAR landmark indices (MediaPipe 468-point mesh)
-    const LEFT_EYE  = [362, 385, 387, 263, 373, 380];
-    const RIGHT_EYE = [33,  160, 158, 133, 153, 144];
-
-    const EAR_THRESHOLD = 0.22;
-    const CONSEC_FRAMES = 2;
+    const BLINK_THRESHOLD = 0.4;  // blendshape score 0–1; tune up/down if needed
+    const CONSEC_FRAMES   = 2;
 
     let blinkCount      = 0;
     let leftClosed      = 0;
     let rightClosed     = 0;
     let blinkRegistered = false;
-
-    function ear(lm, idx) {
-      const p = idx.map(i => lm[i]);
-      const A = dist(p[1], p[5]);
-      const B = dist(p[2], p[4]);
-      const C = dist(p[0], p[3]);
-      return (A + B) / (2 * C);
-    }
-
-    function dist(a, b) {
-      return Math.hypot(a.x - b.x, a.y - b.y);
-    }
 
     function drawCounter(lm) {
       const minY = Math.min(...lm.map(p => p.y));
@@ -171,7 +155,7 @@
             "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
           delegate: "GPU"
         },
-        outputFaceBlendshapes: false,
+        outputFaceBlendshapes: true,
         runningMode: "VIDEO",
         numFaces: 1
       });
@@ -197,12 +181,13 @@
             drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
               { color: 'rgba(0,200,255,0.85)', lineWidth: 1.5 });
 
-            // Blink detection
-            const leftEAR  = ear(lm, LEFT_EYE);
-            const rightEAR = ear(lm, RIGHT_EYE);
+            // Blink detection via blendshapes
+            const shapes = result.faceBlendshapes?.[0]?.categories ?? [];
+            const leftScore  = shapes.find(c => c.categoryName === 'eyeBlinkLeft')?.score  ?? 0;
+            const rightScore = shapes.find(c => c.categoryName === 'eyeBlinkRight')?.score ?? 0;
 
-            if (leftEAR  < EAR_THRESHOLD) leftClosed++;  else leftClosed  = 0;
-            if (rightEAR < EAR_THRESHOLD) rightClosed++; else rightClosed = 0;
+            if (leftScore  > BLINK_THRESHOLD) leftClosed++;  else leftClosed  = 0;
+            if (rightScore > BLINK_THRESHOLD) rightClosed++; else rightClosed = 0;
 
             const bothClosed = leftClosed >= CONSEC_FRAMES && rightClosed >= CONSEC_FRAMES;
 
