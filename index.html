@@ -104,23 +104,27 @@
     }
 
     function drawCounter(lm) {
-      // Find topmost y (smallest normalized y = highest on screen)
       const minY = Math.min(...lm.map(p => p.y));
-      // Nose tip x as horizontal center (landmark 1)
-      const cx = lm[1].x * canvas.width;
+      // Nose tip x (landmark 1); mirror to match CSS scaleX(-1) on canvas
+      const cx = (1 - lm[1].x) * canvas.width;
       const cy = (minY * canvas.height) - 18;
 
       const text = `Blinks: ${blinkCount}`;
       ctx.save();
+      // Counter-flip the context so text renders readable (canvas CSS is scaleX(-1))
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      // After this transform, draw at (canvas.width - cx) to land at cx on screen
+      const tx = canvas.width - cx;
+
       ctx.font = 'bold 28px Courier New';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      // Pill background
       const metrics = ctx.measureText(text);
       const pw = metrics.width + 28;
       const ph = 40;
-      const px = cx - pw / 2;
+      const px = tx - pw / 2;
       const py = cy - ph;
 
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -137,7 +141,7 @@
       ctx.fillStyle = '#00c8ff';
       ctx.shadowColor = '#00c8ff';
       ctx.shadowBlur = 10;
-      ctx.fillText(text, cx, cy);
+      ctx.fillText(text, tx, cy);
       ctx.restore();
     }
 
