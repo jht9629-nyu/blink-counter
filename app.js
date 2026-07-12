@@ -19,11 +19,13 @@ thresholdEl.addEventListener('input', () => {
 });
 
 const CONSEC_FRAMES = 1;
+const COUNTER_COLORS = ['#ff4d4d', '#32cd32', '#d4af37'];
 
 let blinkCount = 0;
 let leftClosed = 0;
 let rightClosed = 0;
 let blinkRegistered = false;
+let counterColorIndex = 0;
 
 function drawCounter(lm) {
   const minY = Math.min(...lm.map((point) => point.y));
@@ -60,8 +62,9 @@ function drawCounter(lm) {
   ctx.roundRect(px, py, pw, ph, 10);
   ctx.stroke();
 
-  ctx.fillStyle = '#00c8ff';
-  ctx.shadowColor = '#00c8ff';
+  const counterColor = COUNTER_COLORS[counterColorIndex];
+  ctx.fillStyle = counterColor;
+  ctx.shadowColor = counterColor;
   ctx.shadowBlur = 10;
   ctx.fillText(text, tx, cy);
   ctx.restore();
@@ -147,6 +150,7 @@ async function main() {
         const bothClosed = leftClosed >= CONSEC_FRAMES && rightClosed >= CONSEC_FRAMES;
 
         if (bothClosed && !blinkRegistered) {
+          counterColorIndex = (blinkCount + COUNTER_COLORS.length - 1) % COUNTER_COLORS.length;
           blinkCount++;
           blinkRegistered = true;
         }
@@ -167,6 +171,7 @@ async function main() {
 
 resetBtn.addEventListener('click', () => {
   blinkCount = 0;
+  counterColorIndex = 0;
 });
 
 main().catch((err) => {

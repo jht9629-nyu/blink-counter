@@ -1,7 +1,12 @@
 # blink-counter
 
 ```
+2026-07-12 15:01:58
+
+on each blink change the text color to next color in palette of red, green and gold
+
 2026-07-12 14:58:10
+
 split out js and css in index.html to own files
 
 
