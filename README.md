@@ -1,6 +1,10 @@
 # blink-counter
 
 ```
+2026-07-12 14:58:10
+split out js and css in index.html to own files
+
+
 2026-06-20 16:40:07
 
 Build a single HTML page using the MediaPipe Tasks API (web/JavaScript) that tracks my eyes, when my eyes blink a counter increases displayed above my head. set work space to my home directory / Documents / projects / 2026 / claude-explore
