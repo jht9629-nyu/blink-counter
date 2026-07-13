@@ -6,6 +6,7 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  padding: 24px 16px;
   font-family: 'Courier New', monospace;
   color: #fff;
 }
@@ -67,12 +68,76 @@ body {
   align-items: center;
   gap: 8px;
 }
-#threshold {
+#threshold,
+#graph-speed {
   accent-color: #00c8ff;
   width: 140px;
   cursor: pointer;
 }
-#threshold-val {
+#threshold-val,
+#graph-speed-val {
   color: #00c8ff;
   min-width: 2.5ch;
+}
+#graph-panel {
+  width: 640px;
+  margin-top: 20px;
+  padding: 12px 14px 14px;
+  border: 1px solid #2f2f2f;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(24, 24, 24, 0.95), rgba(14, 14, 14, 0.95));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+#graph-header {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+.graph-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.graph-label::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+.graph-label-left::before {
+  background: #ff6b6b;
+}
+.graph-label-right::before {
+  background: #4ddf83;
+}
+#graph {
+  display: block;
+  width: 100%;
+  height: 160px;
+  border-radius: 8px;
+  background: rgba(4, 7, 12, 0.88);
+}
+
+@media (max-width: 700px) {
+  #video,
+  #canvas,
+  #graph-panel {
+    width: 100%;
+    max-width: 640px;
+  }
+
+  #controls {
+    width: 100%;
+    max-width: 640px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  #controls label {
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
 }

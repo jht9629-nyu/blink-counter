@@ -7,10 +7,14 @@ import {
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const graph = document.getElementById('graph');
+const graphCtx = graph.getContext('2d');
 const status = document.getElementById('status');
 const resetBtn = document.getElementById('reset-btn');
 const thresholdEl = document.getElementById('threshold');
 const thresholdVal = document.getElementById('threshold-val');
+const graphSpeedEl = document.getElementById('graph-speed');
+const graphSpeedVal = document.getElementById('graph-speed-val');
 
 let BLINK_THRESHOLD = parseFloat(thresholdEl.value);
 thresholdEl.addEventListener('input', () => {
@@ -18,14 +22,29 @@ thresholdEl.addEventListener('input', () => {
   thresholdVal.textContent = BLINK_THRESHOLD.toFixed(2);
 });
 
+let graphSampleInterval = parseInt(graphSpeedEl.value, 10);
+graphSpeedEl.addEventListener('input', () => {
+  graphSampleInterval = parseInt(graphSpeedEl.value, 10);
+  graphSpeedVal.textContent = String(graphSampleInterval);
+});
+
 const CONSEC_FRAMES = 1;
 const COUNTER_COLORS = ['#ff4d4d', '#32cd32', '#d4af37'];
+const GRAPH_WIDTH = 640;
+const GRAPH_HEIGHT = 160;
+const GRAPH_HISTORY_SIZE = 160;
+const LEFT_GRAPH_COLOR = '#ff6b6b';
+const RIGHT_GRAPH_COLOR = '#4ddf83';
+const THRESHOLD_GRAPH_COLOR = 'rgba(0, 200, 255, 0.8)';
 
 let blinkCount = 0;
 let leftClosed = 0;
 let rightClosed = 0;
 let blinkRegistered = false;
 let counterColorIndex = 0;
+let leftScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
+let rightScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
+let graphSampleCountdown = 0;
 
 function drawCounter(lm) {
   const minY = Math.min(...lm.map((point) => point.y));
@@ -68,6 +87,67 @@ function drawCounter(lm) {
   ctx.shadowBlur = 10;
   ctx.fillText(text, tx, cy);
   ctx.restore();
+}
+
+function pushGraphValue(history, score) {
+  history.push(score);
+  if (history.length > GRAPH_HISTORY_SIZE) {
+    history.shift();
+  }
+}
+
+function drawGraphLine(history, color) {
+  graphCtx.beginPath();
+  history.forEach((score, index) => {
+    const x = (index / (GRAPH_HISTORY_SIZE - 1)) * GRAPH_WIDTH;
+    const y = GRAPH_HEIGHT - (score * (GRAPH_HEIGHT - 1));
+    if (index === 0) {
+      graphCtx.moveTo(x, y);
+    } else {
+      graphCtx.lineTo(x, y);
+    }
+  });
+  graphCtx.strokeStyle = color;
+  graphCtx.lineWidth = 2;
+  graphCtx.stroke();
+}
+
+function drawScoreGraph() {
+  graphCtx.clearRect(0, 0, GRAPH_WIDTH, GRAPH_HEIGHT);
+
+  graphCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+  graphCtx.lineWidth = 1;
+  for (let lineIndex = 1; lineIndex < 4; lineIndex++) {
+    const y = (GRAPH_HEIGHT / 4) * lineIndex;
+    graphCtx.beginPath();
+    graphCtx.moveTo(0, y);
+    graphCtx.lineTo(GRAPH_WIDTH, y);
+    graphCtx.stroke();
+  }
+
+  const thresholdY = GRAPH_HEIGHT - (BLINK_THRESHOLD * (GRAPH_HEIGHT - 1));
+  graphCtx.beginPath();
+  graphCtx.moveTo(0, thresholdY);
+  graphCtx.lineTo(GRAPH_WIDTH, thresholdY);
+  graphCtx.strokeStyle = THRESHOLD_GRAPH_COLOR;
+  graphCtx.lineWidth = 1.5;
+  graphCtx.setLineDash([6, 6]);
+  graphCtx.stroke();
+  graphCtx.setLineDash([]);
+
+  drawGraphLine(leftScoreHistory, LEFT_GRAPH_COLOR);
+  drawGraphLine(rightScoreHistory, RIGHT_GRAPH_COLOR);
+}
+
+function updateScoreGraph(leftScore, rightScore) {
+  graphSampleCountdown = (graphSampleCountdown + 1) % graphSampleInterval;
+  if (graphSampleCountdown !== 0) {
+    return;
+  }
+
+  pushGraphValue(leftScoreHistory, leftScore);
+  pushGraphValue(rightScoreHistory, rightScore);
+  drawScoreGraph();
 }
 
 async function startCamera() {
@@ -133,6 +213,8 @@ async function main() {
         const leftScore = shapes.find((category) => category.categoryName === 'eyeBlinkLeft')?.score ?? 0;
         const rightScore = shapes.find((category) => category.categoryName === 'eyeBlinkRight')?.score ?? 0;
 
+        updateScoreGraph(leftScore, rightScore);
+
         status.textContent = `shapes:${shapes.length} L:${leftScore.toFixed(2)} R:${rightScore.toFixed(2)} | blinks:${blinkCount}`;
 
         if (leftScore > BLINK_THRESHOLD) {
@@ -160,6 +242,8 @@ async function main() {
         }
 
         drawCounter(lm);
+      } else {
+        updateScoreGraph(0, 0);
       }
     }
 
@@ -172,7 +256,13 @@ async function main() {
 resetBtn.addEventListener('click', () => {
   blinkCount = 0;
   counterColorIndex = 0;
+  leftScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
+  rightScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
+  graphSampleCountdown = 0;
+  drawScoreGraph();
 });
+
+drawScoreGraph();
 
 main().catch((err) => {
   status.textContent = `Error: ${err.message}`;
