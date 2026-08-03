@@ -3,6 +3,12 @@
 ```
 2026-08-03 15:13:00
 
+draw face mesh points like so << image from doc page >>
+
+locate documenation on FaceLandmarker vision_bundle.mjs
+https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker/web_js
+https://google-ai-edge.github.io/mediapipe-samples-web/#/vision/face_landmarker
+
 draw outline of lips in color COUNTER_COLORS[counterColorIndex]
 
 draw an outline of the face in COUNTER_COLORS[counterColorIndex]

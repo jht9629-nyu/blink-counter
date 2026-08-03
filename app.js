@@ -198,6 +198,9 @@ async function main() {
       if (result.faceLandmarks && result.faceLandmarks.length > 0) {
         const lm = result.faceLandmarks[0];
 
+        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+          { color: 'rgba(255,255,255,0.25)', lineWidth: 0.5 });
+
         drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
           { color: 'rgba(0,200,255,0.85)', lineWidth: 1.5 });
         drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
