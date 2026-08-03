@@ -3,6 +3,8 @@
 ```
 2026-08-03 15:13:00
 
+add checkbox to enable zoom that shows zoomin view of video and face mesh taking up width of screen in correct aspect ratio
+
 add to status.textContent average time between blinks in seconds
 
 draw face mesh points like so << image from doc page >>

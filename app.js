@@ -4,6 +4,7 @@ import {
   DrawingUtils
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
+const container = document.getElementById('container');
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -15,6 +16,11 @@ const thresholdEl = document.getElementById('threshold');
 const thresholdVal = document.getElementById('threshold-val');
 const graphSpeedEl = document.getElementById('graph-speed');
 const graphSpeedVal = document.getElementById('graph-speed-val');
+const zoomToggleEl = document.getElementById('zoom-toggle');
+
+zoomToggleEl.addEventListener('change', () => {
+  container.classList.toggle('zoomed', zoomToggleEl.checked);
+});
 
 let BLINK_THRESHOLD = parseFloat(thresholdEl.value);
 thresholdEl.addEventListener('input', () => {
