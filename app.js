@@ -18,8 +18,18 @@ const graphSpeedEl = document.getElementById('graph-speed');
 const graphSpeedVal = document.getElementById('graph-speed-val');
 const zoomToggleEl = document.getElementById('zoom-toggle');
 
+let zoomEnabled = false;
 zoomToggleEl.addEventListener('change', () => {
-  container.classList.toggle('zoomed', zoomToggleEl.checked);
+  zoomEnabled = zoomToggleEl.checked;
+  container.classList.toggle('zoomed', zoomEnabled);
+  if (!zoomEnabled) {
+    smoothedZoomOx = 50;
+    smoothedZoomOy = 50;
+    smoothedZoomScale = 1;
+    container.style.setProperty('--zoom-ox', '50%');
+    container.style.setProperty('--zoom-oy', '50%');
+    container.style.setProperty('--zoom-scale', '1');
+  }
 });
 
 let BLINK_THRESHOLD = parseFloat(thresholdEl.value);
@@ -42,6 +52,13 @@ const GRAPH_HISTORY_SIZE = 160;
 const LEFT_GRAPH_COLOR = '#ff6b6b';
 const RIGHT_GRAPH_COLOR = '#4ddf83';
 const THRESHOLD_GRAPH_COLOR = 'rgba(0, 200, 255, 0.8)';
+const ZOOM_PADDING = 1.6;
+const ZOOM_MAX_SCALE = 4;
+const ZOOM_LERP = 0.12;
+
+let smoothedZoomOx = 50;
+let smoothedZoomOy = 50;
+let smoothedZoomScale = 1;
 
 let blinkCount = 0;
 let leftClosed = 0;
@@ -159,6 +176,39 @@ function updateScoreGraph(leftScore, rightScore) {
   drawScoreGraph();
 }
 
+function updateZoomTransform(lm) {
+  if (!zoomEnabled) {
+    return;
+  }
+
+  let targetOx = 50;
+  let targetOy = 50;
+  let targetScale = 1;
+
+  if (lm) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const point of lm) {
+      if (point.x < minX) minX = point.x;
+      if (point.x > maxX) maxX = point.x;
+      if (point.y < minY) minY = point.y;
+      if (point.y > maxY) maxY = point.y;
+    }
+
+    const boxSize = Math.max(maxX - minX, maxY - minY);
+    targetOx = ((minX + maxX) / 2) * 100;
+    targetOy = ((minY + maxY) / 2) * 100;
+    targetScale = Math.min(ZOOM_MAX_SCALE, Math.max(1, 1 / (boxSize * ZOOM_PADDING)));
+  }
+
+  smoothedZoomOx += (targetOx - smoothedZoomOx) * ZOOM_LERP;
+  smoothedZoomOy += (targetOy - smoothedZoomOy) * ZOOM_LERP;
+  smoothedZoomScale += (targetScale - smoothedZoomScale) * ZOOM_LERP;
+
+  container.style.setProperty('--zoom-ox', `${smoothedZoomOx}%`);
+  container.style.setProperty('--zoom-oy', `${smoothedZoomOy}%`);
+  container.style.setProperty('--zoom-scale', smoothedZoomScale.toFixed(3));
+}
+
 async function startCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { width: 640, height: 480, facingMode: 'user' }
@@ -206,6 +256,8 @@ async function main() {
 
       if (result.faceLandmarks && result.faceLandmarks.length > 0) {
         const lm = result.faceLandmarks[0];
+
+        updateZoomTransform(lm);
 
         drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_TESSELATION,
           { color: 'rgba(255,255,255,0.25)', lineWidth: 0.5 });
@@ -270,6 +322,7 @@ async function main() {
 
         drawCounter(lm);
       } else {
+        updateZoomTransform(null);
         updateScoreGraph(0, 0);
       }
     }
