@@ -241,6 +241,9 @@ async function main() {
           blinkRegistered = false;
         }
 
+        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
+          { color: COUNTER_COLORS[counterColorIndex], lineWidth: 2 });
+
         drawCounter(lm);
       } else {
         updateScoreGraph(0, 0);
