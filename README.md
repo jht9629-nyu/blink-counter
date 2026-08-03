@@ -3,6 +3,10 @@
 ```
 2026-08-03 15:13:00
 
+draw outline of lips in color COUNTER_COLORS[counterColorIndex]
+
+draw an outline of the face in COUNTER_COLORS[counterColorIndex]
+
 have graph scroll from right to left
 
 2026-07-12 15:01:58
