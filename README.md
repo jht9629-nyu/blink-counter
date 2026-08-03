@@ -1,6 +1,11 @@
 # blink-counter
 
 ```
+
+2026-08-03 17:21:45
+
+refactor app.js into two additional files darw.js and detect.js
+
 2026-08-03 17:09:36
 
 add to graph opening of lips in face mesh
