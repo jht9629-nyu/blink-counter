@@ -3,6 +3,8 @@
 ```
 2026-08-03 15:13:00
 
+add to status.textContent average time between blinks in seconds
+
 draw face mesh points like so << image from doc page >>
 
 locate documenation on FaceLandmarker vision_bundle.mjs

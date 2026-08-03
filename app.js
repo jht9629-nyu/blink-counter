@@ -42,6 +42,9 @@ let leftClosed = 0;
 let rightClosed = 0;
 let blinkRegistered = false;
 let counterColorIndex = 0;
+let lastBlinkTime = null;
+let blinkIntervalTotal = 0;
+let blinkIntervalCount = 0;
 let leftScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
 let rightScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
 let graphSampleCountdown = 0;
@@ -218,8 +221,6 @@ async function main() {
 
         updateScoreGraph(leftScore, rightScore);
 
-        status.textContent = `shapes:${shapes.length} L:${leftScore.toFixed(2)} R:${rightScore.toFixed(2)} | blinks:${blinkCount}`;
-
         if (leftScore > BLINK_THRESHOLD) {
           leftClosed++;
         } else {
@@ -235,6 +236,13 @@ async function main() {
         const bothClosed = leftClosed >= CONSEC_FRAMES && rightClosed >= CONSEC_FRAMES;
 
         if (bothClosed && !blinkRegistered) {
+          const now = performance.now();
+          if (lastBlinkTime !== null) {
+            blinkIntervalTotal += now - lastBlinkTime;
+            blinkIntervalCount++;
+          }
+          lastBlinkTime = now;
+
           counterColorIndex = (blinkCount + COUNTER_COLORS.length - 1) % COUNTER_COLORS.length;
           blinkCount++;
           blinkRegistered = true;
@@ -243,6 +251,11 @@ async function main() {
         if (!bothClosed) {
           blinkRegistered = false;
         }
+
+        const avgBlinkSeconds = blinkIntervalCount > 0
+          ? (blinkIntervalTotal / blinkIntervalCount / 1000).toFixed(1)
+          : '—';
+        status.textContent = `shapes:${shapes.length} L:${leftScore.toFixed(2)} R:${rightScore.toFixed(2)} | blinks:${blinkCount} | avg:${avgBlinkSeconds}s`;
 
         drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
           { color: COUNTER_COLORS[counterColorIndex], lineWidth: 2 });
@@ -264,6 +277,9 @@ async function main() {
 resetBtn.addEventListener('click', () => {
   blinkCount = 0;
   counterColorIndex = 0;
+  lastBlinkTime = null;
+  blinkIntervalTotal = 0;
+  blinkIntervalCount = 0;
   leftScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
   rightScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
   graphSampleCountdown = 0;
