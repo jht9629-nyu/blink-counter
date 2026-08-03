@@ -99,7 +99,7 @@ function pushGraphValue(history, score) {
 function drawGraphLine(history, color) {
   graphCtx.beginPath();
   history.forEach((score, index) => {
-    const x = (index / (GRAPH_HISTORY_SIZE - 1)) * GRAPH_WIDTH;
+    const x = GRAPH_WIDTH - (index / (GRAPH_HISTORY_SIZE - 1)) * GRAPH_WIDTH;
     const y = GRAPH_HEIGHT - (score * (GRAPH_HEIGHT - 1));
     if (index === 0) {
       graphCtx.moveTo(x, y);

@@ -1,6 +1,10 @@
 # blink-counter
 
 ```
+2026-08-03 15:13:00
+
+have graph scroll from right to left
+
 2026-07-12 15:01:58
 
 on each blink change the text color to next color in palette of red, green and gold
