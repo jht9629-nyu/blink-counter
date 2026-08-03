@@ -131,6 +131,9 @@ body {
 .graph-label-right::before {
   background: #4ddf83;
 }
+.graph-label-mouth::before {
+  background: #ffd166;
+}
 #graph {
   display: block;
   width: 100%;

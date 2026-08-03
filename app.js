@@ -1,8 +1,8 @@
 import {
   FaceLandmarker,
   FilesetResolver,
-  DrawingUtils
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+  DrawingUtils,
+} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
 
 const container = document.getElementById('container');
 const video = document.getElementById('video');
@@ -51,7 +51,9 @@ const GRAPH_HEIGHT = 160;
 const GRAPH_HISTORY_SIZE = 160;
 const LEFT_GRAPH_COLOR = '#ff6b6b';
 const RIGHT_GRAPH_COLOR = '#4ddf83';
+const MOUTH_GRAPH_COLOR = '#ffd166';
 const THRESHOLD_GRAPH_COLOR = 'rgba(0, 200, 255, 0.8)';
+const MOUTH_OPEN_SCALE = 1.0; // 2.2;
 const ZOOM_PADDING = 1.6;
 const ZOOM_MAX_SCALE = 4;
 const ZOOM_LERP = 0.12;
@@ -70,13 +72,21 @@ let blinkIntervalTotal = 0;
 let blinkIntervalCount = 0;
 let leftScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
 let rightScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
+let mouthScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
 let graphSampleCountdown = 0;
+
+function mouthOpenScore(lm) {
+  const eyeDist = Math.hypot(lm[263].x - lm[33].x, lm[263].y - lm[33].y);
+  if (eyeDist === 0) return 0;
+  const lipGap = Math.hypot(lm[14].x - lm[13].x, lm[14].y - lm[13].y);
+  return Math.min(1, (lipGap / eyeDist) * MOUTH_OPEN_SCALE);
+}
 
 function drawCounter(lm) {
   const minY = Math.min(...lm.map((point) => point.y));
   // Nose tip x raw; after counter-flip transform, tx = canvas.width - cx lands at correct screen x
   const cx = lm[1].x * canvas.width;
-  const cy = (minY * canvas.height) - 18;
+  const cy = minY * canvas.height - 18;
 
   const text = `Blinks: ${blinkCount}`;
   ctx.save();
@@ -126,7 +136,7 @@ function drawGraphLine(history, color) {
   graphCtx.beginPath();
   history.forEach((score, index) => {
     const x = GRAPH_WIDTH - (index / (GRAPH_HISTORY_SIZE - 1)) * GRAPH_WIDTH;
-    const y = GRAPH_HEIGHT - (score * (GRAPH_HEIGHT - 1));
+    const y = GRAPH_HEIGHT - score * (GRAPH_HEIGHT - 1);
     if (index === 0) {
       graphCtx.moveTo(x, y);
     } else {
@@ -151,7 +161,7 @@ function drawScoreGraph() {
     graphCtx.stroke();
   }
 
-  const thresholdY = GRAPH_HEIGHT - (BLINK_THRESHOLD * (GRAPH_HEIGHT - 1));
+  const thresholdY = GRAPH_HEIGHT - BLINK_THRESHOLD * (GRAPH_HEIGHT - 1);
   graphCtx.beginPath();
   graphCtx.moveTo(0, thresholdY);
   graphCtx.lineTo(GRAPH_WIDTH, thresholdY);
@@ -163,9 +173,10 @@ function drawScoreGraph() {
 
   drawGraphLine(leftScoreHistory, LEFT_GRAPH_COLOR);
   drawGraphLine(rightScoreHistory, RIGHT_GRAPH_COLOR);
+  drawGraphLine(mouthScoreHistory, MOUTH_GRAPH_COLOR);
 }
 
-function updateScoreGraph(leftScore, rightScore) {
+function updateScoreGraph(leftScore, rightScore, mouthScore) {
   graphSampleCountdown = (graphSampleCountdown + 1) % graphSampleInterval;
   if (graphSampleCountdown !== 0) {
     return;
@@ -173,6 +184,7 @@ function updateScoreGraph(leftScore, rightScore) {
 
   pushGraphValue(leftScoreHistory, leftScore);
   pushGraphValue(rightScoreHistory, rightScore);
+  pushGraphValue(mouthScoreHistory, mouthScore);
   drawScoreGraph();
 }
 
@@ -186,7 +198,10 @@ function updateZoomTransform(lm) {
   let targetScale = 1;
 
   if (lm) {
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity;
     for (const point of lm) {
       if (point.x < minX) minX = point.x;
       if (point.x > maxX) maxX = point.x;
@@ -211,7 +226,7 @@ function updateZoomTransform(lm) {
 
 async function startCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { width: 640, height: 480, facingMode: 'user' }
+    video: { width: 640, height: 480, facingMode: 'user' },
   });
   video.srcObject = stream;
   return new Promise((resolve) => {
@@ -228,18 +243,18 @@ async function main() {
   status.textContent = 'Initializing face detector…';
 
   const vision = await FilesetResolver.forVisionTasks(
-    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm',
   );
 
   const landmarker = await FaceLandmarker.createFromOptions(vision, {
     baseOptions: {
       modelAssetPath:
         'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-      delegate: 'GPU'
+      delegate: 'GPU',
     },
     outputFaceBlendshapes: true,
     runningMode: 'VIDEO',
-    numFaces: 1
+    numFaces: 1,
   });
 
   status.textContent = 'Tracking — blink away!';
@@ -259,25 +274,35 @@ async function main() {
 
         updateZoomTransform(lm);
 
-        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-          { color: 'rgba(255,255,255,0.25)', lineWidth: 0.5 });
+        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_TESSELATION, {
+          color: 'rgba(255,255,255,0.25)',
+          lineWidth: 0.5,
+        });
 
-        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
-          { color: 'rgba(0,200,255,0.85)', lineWidth: 1.5 });
-        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
-          { color: 'rgba(0,200,255,0.85)', lineWidth: 1.5 });
+        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_LEFT_EYE, {
+          color: 'rgba(0,200,255,0.85)',
+          lineWidth: 1.5,
+        });
+        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE, {
+          color: 'rgba(0,200,255,0.85)',
+          lineWidth: 1.5,
+        });
 
         const shapes = result.faceBlendshapes?.[0]?.categories ?? [];
 
         if (shapes.length && !window._shapesDumped) {
           window._shapesDumped = true;
-          console.log('Blendshape categories:', shapes.map((category) => category.categoryName));
+          console.log(
+            'Blendshape categories:',
+            shapes.map((category) => category.categoryName),
+          );
         }
 
         const leftScore = shapes.find((category) => category.categoryName === 'eyeBlinkLeft')?.score ?? 0;
         const rightScore = shapes.find((category) => category.categoryName === 'eyeBlinkRight')?.score ?? 0;
+        const mouthScore = mouthOpenScore(lm);
 
-        updateScoreGraph(leftScore, rightScore);
+        updateScoreGraph(leftScore, rightScore, mouthScore);
 
         if (leftScore > BLINK_THRESHOLD) {
           leftClosed++;
@@ -310,23 +335,25 @@ async function main() {
           blinkRegistered = false;
         }
 
-        const avgBlinkSeconds = blinkIntervalCount > 0
-          ? (blinkIntervalTotal / blinkIntervalCount / 1000).toFixed(1)
-          : '—';
+        const avgBlinkSeconds =
+          blinkIntervalCount > 0 ? (blinkIntervalTotal / blinkIntervalCount / 1000).toFixed(1) : '—';
         status.textContent = `shapes:${shapes.length} L:${leftScore.toFixed(2)} R:${rightScore.toFixed(2)} | blinks:${blinkCount} | avg:${avgBlinkSeconds}s`;
 
-        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
-          { color: COUNTER_COLORS[counterColorIndex], lineWidth: 2 });
-        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_LIPS,
-          { color: COUNTER_COLORS[counterColorIndex], lineWidth: 2 });
+        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL, {
+          color: COUNTER_COLORS[counterColorIndex],
+          lineWidth: 2,
+        });
+        drawUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_LIPS, {
+          color: COUNTER_COLORS[counterColorIndex],
+          lineWidth: 2,
+        });
 
         drawCounter(lm);
       } else {
         updateZoomTransform(null);
-        updateScoreGraph(0, 0);
+        updateScoreGraph(0, 0, 0);
       }
     }
-
     requestAnimationFrame(detect);
   }
 
@@ -341,6 +368,7 @@ resetBtn.addEventListener('click', () => {
   blinkIntervalCount = 0;
   leftScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
   rightScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
+  mouthScoreHistory = Array(GRAPH_HISTORY_SIZE).fill(0);
   graphSampleCountdown = 0;
   drawScoreGraph();
 });

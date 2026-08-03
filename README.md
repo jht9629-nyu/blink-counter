@@ -1,6 +1,10 @@
 # blink-counter
 
 ```
+2026-08-03 17:09:36
+
+add to graph opening of lips in face mesh
+
 2026-08-03 15:13:00
 
 zoom should be dynamic to bring detected face mesh into full view
