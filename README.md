@@ -1,4 +1,4 @@
-# blink-counter
+# [blink-counter](https://github.com/jht9629-nyu/blink-counter)
 
 ```
 
